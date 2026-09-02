@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Microbiome-guided ICB Impact Simulator</title>
+<style>
+  :root{
+    --blue:#0b3a78; --green:#1b7f3a; --purple:#6b3aa0; --gold:#9b6b00;
+    --red:#b11d1d; --bg:#f7f9fc; --panel:#ffffff; --line:#d6deea;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#152033}
+  header{background:linear-gradient(90deg,#072b5f,#0b4c9c);color:white;padding:22px 28px}
+  header h1{margin:0;font-size:24px}
+  header p{margin:8px 0 0;opacity:.9}
+  main{padding:22px;max-width:1500px;margin:auto}
+  .grid{display:grid;grid-template-columns:430px 1fr;gap:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 10px rgba(20,40,80,.06)}
+  .controls,.model{padding:16px}
+  .model{overflow:hidden}
+  .controls h2,.model h2{margin:0 0 12px;font-size:18px;color:var(--blue)}
+  .control{padding:12px 0;border-top:1px solid #edf1f7}
+  .control:first-of-type{border-top:0}
+  label{display:flex;justify-content:space-between;gap:12px;font-weight:700;font-size:14px}
+  .value{color:var(--blue);white-space:nowrap}
+  input[type=range]{width:100%;margin-top:9px}
+  .mainSlider{margin-top:10px}
+  .mainSlider label{display:flex;justify-content:space-between;margin-bottom:2px}
+  .hint{font-size:12px;color:#5c687a;margin-top:4px;line-height:1.35}
+  .flow{display:grid;grid-template-columns:1.1fr 1fr 1.1fr;gap:14px;align-items:stretch}
+  .box{border:2px solid var(--line);border-radius:13px;background:#fff;padding:14px;min-height:120px}
+  .box h3{margin:0 0 8px;font-size:15px;color:var(--blue)}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .green{border-color:#9bd4a8;background:#f3fbf5}.green h3{color:var(--green)}
+  .purple{border-color:#c7a8e8;background:#faf6ff}.purple h3{color:var(--purple)}
+  .red{border-color:#e6aaaa;background:#fff7f7}.red h3{color:var(--red)}
+  .gold{border-color:#e7cf8a;background:#fffaf0}.gold h3{color:var(--gold)}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:16px}
+  .metric{padding:14px;border-radius:12px;background:#fff;border:1px solid var(--line)}
+  .metric .num{font-size:25px;font-weight:800;color:var(--blue);margin-bottom:4px}
+  .metric .txt{font-size:13px;color:#526070;line-height:1.25}
+  .gaugeWrap{display:flex;justify-content:center;align-items:center;margin:4px 0 8px}
+  svg.gauge{width:210px;height:120px}
+  .gaugeLabel{display:flex;justify-content:space-between;font-size:12px;font-weight:700}
+  .tiny{font-size:12px;color:#5b6878;line-height:1.35}
+  .footerNote{margin-top:14px;padding:12px;border-radius:10px;background:#eef5ff;color:#1d416f;font-size:13px;line-height:1.4}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+  th,td{padding:8px;border-bottom:1px solid #e8edf5;text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  th{color:#28405f;background:#f4f7fb}
+  @media (max-width:1000px){.grid,.flow,.metrics{grid-template-columns:1fr}.split{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Microbiome-guided ICB Impact Simulator</h1>
+  <p>Interactive scenario model for biomarker-guided patient selection and microbiome-directed therapy.</p>
+</header>
+<main><div class="grid">
+  <section class="card controls">
+    <h2>Main impact levers</h2>
+    <p class="hint">The four large gauges carry the pitch: current ICB efficacy, predictive performance, microbiome-driven rescue of non-responders, and prevention of microbiome disruption.</p>
+    <div class="box" style="margin-top:12px"><h3>1. Current ICB efficacy</h3><div class="gaugeWrap" id="gaugeBaseline"></div><div class="gaugeLabel"><span>More NR</span><span>More R</span></div><div class="mainSlider"><label for="main_response"><span>Response rate</span><span class="value" id="mainVal_response">40%</span></label><input type="range" id="main_response" min="5" max="80" step="1" value="40"></div><div class="hint">Starting point: what proportion of patients respond to ICB today?</div></div>
+    <div class="box green" style="margin-top:12px"><h3>2. Predict: biomarker performance</h3><div class="gaugeWrap" id="gaugeBiomarker"></div><div class="gaugeLabel"><span>Poor</span><span>Strong</span></div><div class="mainSlider"><label for="main_biomarker"><span>Mean sensitivity / specificity</span><span class="value" id="mainVal_biomarker">78%</span></label><input type="range" id="main_biomarker" min="40" max="100" step="1" value="78"></div><div class="hint">Diagnostic lever: how well can we identify patients likely or unlikely to benefit?</div></div>
+    <div class="box purple" style="margin-top:12px"><h3>3. Optimize: NR → R conversion</h3><div class="gaugeWrap" id="gaugeFmt"></div><div class="gaugeLabel"><span>0%</span><span>60%</span></div><div class="mainSlider"><label for="main_conversion"><span>NR → R conversion</span><span class="value" id="mainVal_conversion">30%</span></label><input type="range" id="main_conversion" min="0" max="60" step="1" value="30"></div><div class="hint">Therapeutic lever: what fraction of true non-responders can microbiome modulation convert into responders?</div></div>
+    <div class="box gold" style="margin-top:12px"><h3>4. Prevent: avoidable ATB / PPI exposure</h3><div class="gaugeWrap" id="gaugeAtbPpi"></div><div class="gaugeLabel"><span>0%</span><span>20%</span></div><div class="mainSlider"><label for="main_atbPpiGain"><span>NR → R gain</span><span class="value" id="mainVal_atbPpiGain">5%</span></label><input type="range" id="main_atbPpiGain" min="0" max="20" step="1" value="5"></div><div class="hint">Prevention lever: estimated fraction of remaining non-responders that could become responders by avoiding unnecessary antibiotic or PPI exposure. This assumption is intentionally exploratory.</div></div>
+    <details style="margin-top:14px"><summary style="cursor:pointer;font-weight:800;color:var(--blue);padding:10px 0">Advanced / model assumptions</summary><div id="controls"></div></details>
+  </section>
+  <section class="card model">
+    <h2>Decision model</h2>
+    <div class="flow">
+      <div class="box"><h3>Current pathway</h3><p class="tiny"><b>Cancer patient eligible for ICB</b></p><p class="tiny">A substantial fraction benefits, but many patients still experience primary non-response.</p></div>
+      <div class="box green"><h3>Lever 1 — Predict</h3><p class="tiny">Use a microbiome-based companion diagnostic to estimate ICB response probability before treatment.</p></div>
+      <div class="box purple"><h3>Lever 2 — Optimize</h3><p class="tiny">Use FMT or another microbiome-directed intervention to increase response among patients predicted not to benefit.</p></div>
+    </div>
+    <div class="box gold" style="margin-top:12px"><h3>Lever 3 — Prevent microbiome disruption</h3><p class="tiny">Where clinically appropriate, reduce unnecessary antibiotic and PPI exposure that may compromise the microbiome during ICB. The magnitude of recoverable response is uncertain and is therefore treated as a scenario parameter.</p></div>
+    <div class="split">
+      <div class="box green"><h3>Predicted responders → standard ICI</h3><p class="tiny" id="txtTreat"></p><p class="tiny"><b>Clinical aim:</b> preserve treatment for patients likely to benefit.</p></div>
+      <div class="box purple"><h3>Predicted non-responders → withhold or optimize</h3><div class="split" style="grid-template-columns:1fr 1fr;margin-top:0"><div class="box red"><h3>Withhold ICI</h3><p class="tiny" id="txtWithhold"></p><p class="tiny"><b>Impact:</b> fewer ineffective treatments, fewer treatment-related harms, lower costs.</p></div><div class="box purple"><h3>FMT / microbiome modulation</h3><p class="tiny" id="txtFmt"></p><p class="tiny"><b>Impact:</b> more responders and potentially improved PFS/OS.</p></div></div></div>
+    </div>
+    <div class="metrics" id="metrics"></div>
+    <div class="box gold" style="margin-top:16px"><h3>Budget and clinical impact summary</h3><table id="summaryTable"></table></div>
+    <div class="footerNote">This is a grant-facing scenario model, not a clinical recommendation. The defaults are placeholders to explore orders of magnitude; all assumptions can be tuned.</div>
+  </section>
+</div></main>
+<script>
+const params = [
+  {id:'patients',label:'Patients considered',min:100,max:10000,step:100,value:1000,suffix:''},
+  {id:'response',label:'Baseline ICI response rate',min:5,max:80,step:1,value:40,suffix:'%'},
+  {id:'iciCost',label:'ICI cost per patient',min:10000,max:250000,step:5000,value:100000,suffix:'€'},
+  {id:'sens',label:'Biomarker sensitivity for responders',min:40,max:100,step:1,value:85,suffix:'%'},
+  {id:'spec',label:'Biomarker specificity for non-responders',min:40,max:100,step:1,value:70,suffix:'%'},
+  {id:'withheld',label:'Predicted NR withheld from standard ICI',min:0,max:100,step:1,value:50,suffix:'%'},
+  {id:'fmtRate',label:'Predicted NR receiving FMT / modulation',min:0,max:100,step:1,value:50,suffix:'%'},
+  {id:'conversion',label:'FMT conversion rate among true NR',min:0,max:60,step:1,value:30,suffix:'%'},
+  {id:'atbPpiGain',label:'NR→R gain from restricting avoidable ATB/PPI use',min:0,max:20,step:1,value:5,suffix:'%'},
+  {id:'fmtCost',label:'FMT / modulation cost per patient',min:0,max:50000,step:1000,value:10000,suffix:'€'},
+  {id:'iraeRate',label:'Severe irAE rate under ICI',min:0,max:40,step:1,value:15,suffix:'%'},
+  {id:'iraeCost',label:'Cost per severe irAE',min:0,max:50000,step:1000,value:15000,suffix:'€'},
+  {id:'pfsGain',label:'PFS gain per additional responder',min:0,max:24,step:1,value:6,suffix:' months'}
+];
+const controls=document.getElementById('controls');
+const state={};
+function fmt(v,suffix){if(suffix==='€')return '€'+Number(v).toLocaleString('en-US');if(suffix==='%')return v+'%';if(suffix.includes('months'))return v+' mo';return Number(v).toLocaleString('en-US')}
+function hint(id){const h={response:'True responder prevalence before any microbiome intervention.',sens:'Probability that a true responder is classified as predicted responder.',spec:'Probability that a true non-responder is classified as predicted non-responder.',withheld:'Share of predicted non-responders redirected away from immediate standard ICI.',fmtRate:'Share of predicted non-responders receiving microbiome-directed optimization.',conversion:'Share of true non-responders receiving FMT who become responders.',atbPpiGain:'Exploratory scenario assumption: fraction of residual non-responders converted to responders by avoiding unnecessary antibiotic/PPI exposure.',pfsGain:'Simplified aggregate estimate; useful for visualizing order-of-magnitude clinical gain.'};return h[id]||'Editable scenario assumption.'}
+params.forEach(p=>{state[p.id]=p.value;const div=document.createElement('div');div.className='control';div.innerHTML=`<label><span>${p.label}</span><span class="value" id="val_${p.id}">${fmt(p.value,p.suffix)}</span></label><input type="range" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.value}" id="${p.id}"><div class="hint">${hint(p.id)}</div>`;controls.appendChild(div)});
+params.forEach(p=>document.getElementById(p.id).addEventListener('input',e=>{state[p.id]=Number(e.target.value);document.getElementById('val_'+p.id).textContent=fmt(state[p.id],p.suffix);update()}));
+const mainBindings={response:['main_response','mainVal_response'],conversion:['main_conversion','mainVal_conversion'],atbPpiGain:['main_atbPpiGain','mainVal_atbPpiGain']};
+Object.entries(mainBindings).forEach(([key,[inputId,valueId]])=>document.getElementById(inputId).addEventListener('input',e=>{state[key]=Number(e.target.value);document.getElementById(key).value=state[key];document.getElementById('val_'+key).textContent=state[key]+'%';document.getElementById(valueId).textContent=state[key]+'%';update()}));
+document.getElementById('main_biomarker').addEventListener('input',e=>{const v=Number(e.target.value);state.sens=v;state.spec=v;document.getElementById('sens').value=v;document.getElementById('spec').value=v;document.getElementById('val_sens').textContent=v+'%';document.getElementById('val_spec').textContent=v+'%';document.getElementById('mainVal_biomarker').textContent=v+'%';update()});
+function money(x){return '€'+Math.round(x).toLocaleString('en-US')}
+function num(x){return Math.round(x).toLocaleString('en-US')}
+function calc(){const N=state.patients,rr=state.response/100,nr=1-rr,sens=state.sens/100,spec=state.spec/100,trueR=N*rr,trueNR=N*nr,predR=trueR*sens+trueNR*(1-spec),predNR=trueNR*spec+trueR*(1-sens),withheld=predNR*state.withheld/100,fmtN=predNR*state.fmtRate/100,fmtTrueNR=fmtN*(trueNR*spec/Math.max(predNR,1)),converted=fmtTrueNR*state.conversion/100,residualTrueNR=Math.max(0,trueNR-converted),atbPpiConverted=residualTrueNR*state.atbPpiGain/100,standardTreated=predR,optimizedTreated=fmtN,totalIciGuided=standardTreated+optimizedTreated+Math.max(0,predNR-withheld-fmtN),iciAvoided=Math.max(0,withheld),socIciCost=N*state.iciCost,guidedIciCost=totalIciGuided*state.iciCost,fmtCost=fmtN*state.fmtCost,socTox=N*state.iraeRate/100*state.iraeCost,guidedTox=totalIciGuided*state.iraeRate/100*state.iraeCost,netSavings=(socIciCost+socTox)-(guidedIciCost+guidedTox+fmtCost),additionalResponders=converted+atbPpiConverted,additionalPfsMonths=additionalResponders*state.pfsGain,totalResponders=trueR+additionalResponders;return {N,trueR,trueNR,predR,predNR,withheld,fmtN,converted,atbPpiConverted,additionalResponders,totalIciGuided,iciAvoided,socIciCost,guidedIciCost,fmtCost,socTox,guidedTox,netSavings,additionalPfsMonths,totalResponders}}
+function gauge(value,label,left='Low',right='High'){value=Math.max(0,Math.min(1,value));const angle=-120+240*value,rad=(angle-90)*Math.PI/180,cx=100,cy=95,r=68,x=cx+r*Math.cos(rad),y=cy+r*Math.sin(rad);return `<svg class="gauge" viewBox="0 0 200 120"><path d="M35 95 A65 65 0 0 1 165 95" fill="none" stroke="#e5e8ee" stroke-width="18"/><path d="M35 95 A65 65 0 0 1 77 34" fill="none" stroke="#d54b4b" stroke-width="12"/><path d="M77 34 A65 65 0 0 1 123 34" fill="none" stroke="#e1b84f" stroke-width="12"/><path d="M123 34 A65 65 0 0 1 165 95" fill="none" stroke="#3a9b55" stroke-width="12"/><line x1="100" y1="95" x2="${x}" y2="${y}" stroke="#111827" stroke-width="7" stroke-linecap="round"/><circle cx="100" cy="95" r="11" fill="#1f2937"/><text x="35" y="114" font-size="11" fill="#b11d1d" font-weight="700">${left}</text><text x="165" y="114" font-size="11" fill="#1b7f3a" text-anchor="end" font-weight="700">${right}</text><text x="100" y="18" font-size="13" fill="#0b3a78" text-anchor="middle" font-weight="800">${label}</text></svg>`}
+function update(){const c=calc(),biomarkerMean=Math.round((state.sens+state.spec)/2);[['main_response','mainVal_response',state.response],['main_biomarker','mainVal_biomarker',biomarkerMean],['main_conversion','mainVal_conversion',state.conversion],['main_atbPpiGain','mainVal_atbPpiGain',state.atbPpiGain]].forEach(([inputId,valueId,value])=>{document.getElementById(inputId).value=value;document.getElementById(valueId).textContent=value+'%'});document.getElementById('gaugeBaseline').innerHTML=gauge(state.response/100,state.response+'% response','NR','R');document.getElementById('gaugeBiomarker').innerHTML=gauge((state.sens+state.spec)/200,biomarkerMean+'% mean sens/spec','Poor','Strong');document.getElementById('gaugeFmt').innerHTML=gauge(state.conversion/60,state.conversion+'% NR→R','0%','60%');document.getElementById('gaugeAtbPpi').innerHTML=gauge(state.atbPpiGain/20,state.atbPpiGain+'% NR→R','0%','20%');document.getElementById('txtTreat').textContent=`${num(c.predR)} patients classified as likely responders receive standard ICI.`;document.getElementById('txtWithhold').textContent=`${num(c.withheld)} predicted non-responders avoid immediate standard ICI exposure.`;document.getElementById('txtFmt').textContent=`${num(c.fmtN)} predicted non-responders receive microbiome modulation; estimated additional responders: ${num(c.converted)}.`;const metrics=[[num(c.converted),'Additional responders from FMT / modulation'],[num(c.atbPpiConverted),'Additional responders from restricting avoidable ATB/PPI'],[num(c.iciAvoided),'Unnecessary ICI courses avoided'],[money(c.netSavings),'Net budget impact vs treat-all'],[num(c.additionalPfsMonths),'Approx. total PFS months gained']];document.getElementById('metrics').innerHTML=metrics.map(m=>`<div class="metric"><div class="num">${m[0]}</div><div class="txt">${m[1]}</div></div>`).join('');document.getElementById('summaryTable').innerHTML=`<tr><th>Outcome</th><th>Treat-all ICI</th><th>Microbiome-guided scenario</th></tr><tr><td>ICI-treated patients</td><td>${num(c.N)}</td><td>${num(c.totalIciGuided)}</td></tr><tr><td>Responders</td><td>${num(c.trueR)}</td><td>${num(c.totalResponders)}</td></tr><tr><td>Additional responders — FMT / modulation</td><td>0</td><td>${num(c.converted)}</td></tr><tr><td>Additional responders — ATB/PPI restriction</td><td>0</td><td>${num(c.atbPpiConverted)}</td></tr><tr><td>ICI drug costs</td><td>${money(c.socIciCost)}</td><td>${money(c.guidedIciCost)}</td></tr><tr><td>Severe irAE costs</td><td>${money(c.socTox)}</td><td>${money(c.guidedTox)}</td></tr><tr><td>Microbiome intervention costs</td><td>€0</td><td>${money(c.fmtCost)}</td></tr><tr><td><b>Net difference</b></td><td></td><td><b>${money(c.netSavings)}</b></td></tr>`}
+update();
+</script>
+</body>
+</html>
